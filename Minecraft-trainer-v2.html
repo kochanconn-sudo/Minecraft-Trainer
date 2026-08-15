@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft 技能練習 - スキル測定ツール</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #4ade80;
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            color: #4ade80;
+            text-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #a0a0a0;
+            font-size: 0.9em;
+        }
+
+        .highscore-display {
+            color: #f97316;
+            font-size: 1.1em;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            background: #1a2332;
+            border: 2px solid #444;
+            color: #a0a0a0;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            transition: all 0.3s;
+            border-radius: 0;
+        }
+
+        .tab-btn:hover {
+            background: #2a3342;
+            border-color: #4ade80;
+        }
+
+        .tab-btn.active {
+            background: #2d5a2d;
+            border-color: #4ade80;
+            color: #4ade80;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .panel {
+            background: #0f1419;
+            border: 2px solid #333;
+            border-radius: 5px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .panel h2 {
+            color: #4ade80;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .setting-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #d0d0d0;
+            font-weight: bold;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            background: #1a2332;
+            border: 2px solid #333;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            border-radius: 3px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #4ade80;
+        }
+
+        .key-binding-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .key-binding-item {
+            background: #1a2332;
+            padding: 15px;
+            border: 2px solid #333;
+            border-radius: 3px;
+            transition: all 0.3s;
+        }
+
+        .key-binding-item input {
+            margin-bottom: 0;
+        }
+
+        .key-binding-item input:focus {
+            border-color: #4ade80;
+            background: #2a3342;
+        }
+
+        .key-binding-hint {
+            font-size: 0.8em;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background: #4ade80;
+            color: #0f1419;
+            border: none;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 1em;
+            border-radius: 3px;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background: #5fd891;
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            background: #888;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .btn-secondary {
+            background: #f97316;
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            background: #fb923c;
+        }
+
+        .game-area {
+            background: #1a2332;
+            border: 2px solid #4ade80;
+            padding: 30px;
+            border-radius: 5px;
+            text-align: center;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .game-area h3 {
+            color: #4ade80;
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        .timer {
+            font-size: 3em;
+            color: #f97316;
+            font-weight: bold;
+            margin: 20px 0;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .score-display {
+            font-size: 2em;
+            color: #4ade80;
+            margin: 20px 0;
+        }
+
+        .leaderboard {
+            display: grid;
+            gap: 10px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .leaderboard-entry {
+            background: #1a2332;
+            padding: 15px;
+            border-left: 4px solid #4ade80;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .leaderboard-entry.top {
+            border-left-color: #f97316;
+        }
+
+        .leaderboard-rank {
+            font-weight: bold;
+            color: #4ade80;
+            font-size: 1.2em;
+            min-width: 40px;
+        }
+
+        .leaderboard-info {
+            flex: 1;
+            text-align: left;
+            margin-left: 15px;
+        }
+
+        .leaderboard-score {
+            color: #f97316;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .search-box {
+            background: #1a2332;
+            border: 2px solid #4ade80;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px;
+            font-size: 1em;
+        }
+
+        .search-engines {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .engine-btn {
+            padding: 10px;
+            background: #2a3342;
+            border: 2px solid #444;
+            color: #a0a0a0;
+            cursor: pointer;
+            border-radius: 3px;
+            transition: all 0.3s;
+        }
+
+        .engine-btn:hover {
+            background: #3a4352;
+            border-color: #4ade80;
+            color: #4ade80;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .stat-box {
+            background: #1a2332;
+            border: 2px solid #333;
+            padding: 20px;
+            border-radius: 3px;
+            text-align: center;
+        }
+
+        .stat-box h4 {
+            color: #a0a0a0;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            color: #4ade80;
+            font-weight: bold;
+        }
+
+        .sensitivity-slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #333;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .sensitivity-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4ade80;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
+        }
+
+        .sensitivity-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4ade80;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
+        }
+
+        .info-box {
+            background: #1a2332;
+            border: 2px solid #4ade80;
+            padding: 15px;
+            border-radius: 3px;
+            margin-bottom: 15px;
+            color: #a0a0a0;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .key-binding-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .timer {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⛏️ Minecraft 技能練習</h1>
+            <p class="subtitle">Pythonコード仕様をWebに移植・実キー入力検知対応</p>
+            <div class="highscore-display" id="highscore-display">🏆 ハイスコア: 未記録</div>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('keybind')">キーバインド設定</button>
+            <button class="tab-btn" onclick="switchTab('speed')">速度測定</button>
+            <button class="tab-btn" onclick="switchTab('cps')">CPS（連打力測定）</button>
+            <button class="tab-btn" onclick="switchTab('sensitivity')">感度測定</button>
+            <button class="tab-btn" onclick="switchTab('ranking')">ランキング</button>
+            <button class="tab-btn" onclick="switchTab('search')">匿名検索</button>
+        </div>
+
+        <!-- キーバインド設定 -->
+        <div id="keybind" class="tab-content active">
+            <div class="panel">
+                <h2>キーバインド設定</h2>
+                <div class="info-box">
+                    💡 各項目をクリックして、実際にキーボードやマウスを押してください。自動で登録されます。
+                </div>
+                <div class="key-binding-grid" id="keybinding-container"></div>
+                <button class="btn" onclick="saveKeybindings()">設定を保存</button>
+                <div id="keybind-msg" style="margin-top: 15px; color: #4ade80;"></div>
+            </div>
+        </div>
+
+        <!-- 速度測定 -->
+        <div id="speed" class="tab-content">
+            <div class="panel">
+                <h2>速度測定ゲーム</h2>
+                <div class="info-box">
+                    💡 問題数を選択して「測定スタート」ボタンを押してください。表示された操作に対応するキーを押します。
+                </div>
+                
+                <div id="speed-setup" style="display: block;">
+                    <div class="setting-group">
+                        <label>問題数を選択（最大10問）</label>
+                        <input type="number" id="speed-problems" value="10" min="1" max="10">
+                    </div>
+                    <button class="btn" onclick="startSpeedGame()">🎮 測定スタート</button>
+                </div>
+
+                <div id="speed-game" style="display: none; margin-top: 30px;">
+                    <div class="game-area">
+                        <div id="speed-progress" style="color: #a0a0a0; font-size: 1.2em;"></div>
+                        <h3 id="speed-task">次の操作をしてください：</h3>
+                        <p id="speed-key-display" style="font-size: 1.5em; color: #f97316; margin: 20px 0;"></p>
+                        <div class="timer" id="speed-timer">0.00s</div>
+                        <button class="btn btn-secondary" onclick="cancelSpeedGame()">中止</button>
+                    </div>
+                </div>
+
+                <div id="speed-result" style="display: none; margin-top: 30px;">
+                    <div class="game-area">
+                        <h3>測定完了！</h3>
+                        <div class="score-display">合計時間: <span id="speed-total">0.00</span>秒</div>
+                        <div class="score-display">1問平均: <span id="speed-avg">0.00</span>秒</div>
+                        <div class="stats-grid">
+                            <div class="stat-box">
+                                <h4>最速</h4>
+                                <div class="stat-value"><span id="speed-best">0.00</span>s</div>
+                            </div>
+                            <div class="stat-box">
+                                <h4>最遅</h4>
+                                <div class="stat-value"><span id="speed-worst">0.00</span>s</div>
+                            </div>
+                        </div>
+                        <button class="btn" onclick="saveSpeedScore()">スコアを保存</button>
+                        <button class="btn btn-secondary" onclick="resetSpeedGame()" style="margin-left: 10px;">もう一度</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CPS測定 -->
+        <div id="cps" class="tab-content">
+            <div class="panel">
+                <h2>CPS計測（連打力測定）</h2>
+                <div class="info-box">
+                    💡 測定時間を選択して「計測開始」を押します。その後、指定されたキーをできるだけ速く連打してください。
+                </div>
+                
+                <div id="cps-setup" style="display: block;">
+                    <div class="setting-group">
+                        <label>測定時間（秒）</label>
+                        <input type="number" id="cps-duration" value="10" min="1" max="60">
+                    </div>
+                    <div class="setting-group">
+                        <label>計測対象キー（クリックして登録）</label>
+                        <input type="text" id="cps-target-key" placeholder="キーボードを押して登録" readonly style="cursor: pointer; background: #2a3342;">
+                    </div>
+                    <button class="btn" onclick="startCpsTest()">🎮 計測開始</button>
+                </div>
+
+                <div id="cps-game" style="display: none; margin-top: 30px;">
+                    <div class="game-area">
+                        <h3>連打しろ！</h3>
+                        <div class="timer" id="cps-timer">10</div>
+                        <div style="font-size: 2em; margin: 20px 0;">
+                            <span id="cps-count" style="color: #4ade80;">0</span>
+                            <span style="color: #a0a0a0;">回</span>
+                        </div>
+                        <button class="btn btn-secondary" onclick="cancelCpsTest()">中止</button>
+                    </div>
+                </div>
+
+                <div id="cps-result" style="display: none; margin-top: 30px;">
+                    <div class="game-area">
+                        <h3>計測完了！</h3>
+                        <div class="score-display">CPS: <span id="cps-value">0.0</span></div>
+                        <p style="color: #a0a0a0; margin-bottom: 20px;">総クリック数: <span id="cps-total">0</span></p>
+                        <button class="btn" onclick="saveCpsScore()">スコアを保存</button>
+                        <button class="btn btn-secondary" onclick="resetCpsTest()" style="margin-left: 10px;">もう一度</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 感度測定 -->
+        <div id="sensitivity" class="tab-content">
+            <div class="panel">
+                <h2>感度測定</h2>
+                <p style="margin-bottom: 20px; color: #a0a0a0;">
+                    スライダーで感度を調整して、自分に合った感度を見つけましょう
+                </p>
+                <div class="setting-group">
+                    <label>感度レベル: <span id="sens-level" style="color: #4ade80;">5.0</span></label>
+                    <input 
+                        type="range" 
+                        id="sensitivity-slider" 
+                        class="sensitivity-slider"
+                        min="0.1" 
+                        max="10" 
+                        step="0.1" 
+                        value="5.0"
+                        oninput="updateSensitivity(this.value)"
+                    >
+                </div>
+
+                <div style="margin-top: 20px; background: #1a2332; padding: 20px; border-radius: 5px; border: 2px solid #333;">
+                    <h3 style="color: #4ade80; margin-bottom: 15px;">推奨感度レベル</h3>
+                    <div style="color: #a0a0a0; line-height: 1.8;">
+                        <div>🟢 <strong>低（1.0 - 2.0）</strong> - 精密な狙撃、pvp</div>
+                        <div>🟡 <strong>通常（4.0 - 6.0）</strong> - バランス重視</div>
+                        <div>🔴 <strong>高（8.0 - 10.0）</strong> - 素早い操作、建築</div>
+                    </div>
+                </div>
+
+                <button class="btn" onclick="saveSensitivity()" style="margin-top: 20px;">感度を保存</button>
+            </div>
+        </div>
+
+        <!-- ランキング -->
+        <div id="ranking" class="tab-content">
+            <div class="panel">
+                <h2>ランキング</h2>
+                
+                <h3 style="color: #f97316; margin-top: 30px; margin-bottom: 15px;">🏃 速度測定 ランキング</h3>
+                <div id="speed-ranking" class="leaderboard"></div>
+
+                <h3 style="color: #f97316; margin-top: 30px; margin-bottom: 15px;">⚡ CPS ランキング</h3>
+                <div id="cps-ranking" class="leaderboard"></div>
+
+                <button class="btn btn-secondary" onclick="clearAllScores()" style="margin-top: 20px;">全スコアをリセット</button>
+            </div>
+        </div>
+
+        <!-- 匿名検索 -->
+        <div id="search" class="tab-content">
+            <div class="panel">
+                <h2>匿名検索</h2>
+                <div class="search-box">
+                    <input 
+                        type="text" 
+                        id="search-query" 
+                        placeholder="何か検索してみよう..."
+                        onkeypress="if(event.key==='Enter') searchWeb()"
+                    >
+                    <div class="search-engines">
+                        <button class="engine-btn" onclick="searchWeb('duckduckgo')">DuckDuckGo</button>
+                        <button class="engine-btn" onclick="searchWeb('startpage')">Startpage</button>
+                        <button class="engine-btn" onclick="searchWeb('searx')">SearX</button>
+                        <button class="engine-btn" onclick="searchWeb('ecosia')">Ecosia</button>
+                    </div>
+                </div>
+                <div style="background: #1a2332; padding: 20px; border-radius: 5px; border: 2px solid #333;">
+                    <p style="color: #a0a0a0; margin-bottom: 10px;">
+                        <strong>プライバシー重視の検索エンジン：</strong>
+                    </p>
+                    <ul style="color: #a0a0a0; margin-left: 20px;">
+                        <li><strong>DuckDuckGo</strong> - 検索履歴を保存しない</li>
+                        <li><strong>Startpage</strong> - Google結果を匿名で取得</li>
+                        <li><strong>SearX</strong> - オープンソースのメタサーチエンジン</li>
+                        <li><strong>Ecosia</strong> - 検索で植林に貢献</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============ デフォルトキーマップ（Pythonコード準拠） ============
+        const DEFAULT_KEY_MAP = [
+            ["前へ進む", "w"],
+            ["後ろへ下がる", "s"],
+            ["左へ動く", "a"],
+            ["右へ動く", "d"],
+            ["ジャンプ", " "],
+            ["ダッシュ（走る）", "shift"],
+            ["スニーク（しゃがむ）", "control"],
+            ["インベントリを開閉", "e"],
+            ["アイテムを1個捨てる", "q"],
+            ["メイン/オフハンド入替", "f"],
+            ["ホットバー 1", "1"],
+            ["ホットバー 2", "2"],
+            ["ホットバー 3", "3"],
+            ["ホットバー 4", "4"],
+            ["ホットバー 5", "5"],
+            ["ホットバー 6", "6"],
+            ["ホットバー 7", "7"],
+            ["ホットバー 8", "8"],
+            ["ホットバー 9", "9"],
+        ];
+
+        // ============ ストレージ管理 ============
+        function getStorage(key, defaultValue = null) {
+            const data = localStorage.getItem(key);
+            return data ? JSON.parse(data) : defaultValue;
+        }
+
+        function setStorage(key, value) {
+            localStorage.setItem(key, JSON.stringify(value));
+        }
+
+        // ============ タブ切り替え ============
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // ============ キーバインド初期化 ============
+        function initKeyBindings() {
+            const container = document.getElementById('keybinding-container');
+            const savedKeys = getStorage('keybindings', {});
+
+            DEFAULT_KEY_MAP.forEach(([action, defaultKey]) => {
+                const item = document.createElement('div');
+                item.className = 'key-binding-item';
+                
+                const label = document.createElement('label');
+                label.textContent = action;
+                
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'keybinding-input';
+                input.dataset.action = action;
+                input.value = savedKeys[action] || defaultKey;
+                input.readOnly = true;
+                input.style.cursor = 'pointer';
+                
+                const hint = document.createElement('div');
+                hint.className = 'key-binding-hint';
+                hint.textContent = 'クリックしてキー/マウスを押してください';
+                
+                input.addEventListener('click', () => startKeyRecording(input));
+                
+                item.appendChild(label);
+                item.appendChild(input);
+                item.appendChild(hint);
+                container.appendChild(item);
+            });
+        }
+
+        // キー入力をキャプチャ
+        function startKeyRecording(inputElement) {
+            inputElement.style.background = '#4ade80';
+            inputElement.style.color = '#0f1419';
+            inputElement.value = 'キーを押してください...';
+            
+            const tempListener = (e) => {
+                e.preventDefault();
+                
+                let keyName = e.key.toLowerCase();
+                if (e.key === ' ') keyName = 'space';
+                if (e.key === 'Shift') keyName = 'shift';
+                if (e.key === 'Control') keyName = 'control';
+                if (e.key === 'Enter') keyName = 'enter';
+                if (e.key === 'Tab') keyName = 'tab';
+                
+                inputElement.value = keyName;
+                inputElement.style.background = '#1a2332';
+                inputElement.style.color = '#e0e0e0';
+                
+                document.removeEventListener('keydown', tempListener);
+            };
+            
+            document.addEventListener('keydown', tempListener);
+        }
+
+        function saveKeybindings() {
+            const keybinds = {};
+            document.querySelectorAll('.keybinding-input').forEach(input => {
+                keybinds[input.dataset.action] = input.value.toLowerCase();
+            });
+            setStorage('keybindings', keybinds);
+            
+            const msg = document.getElementById('keybind-msg');
+            msg.textContent = '✓ キーバインドを保存しました';
+            setTimeout(() => { msg.textContent = ''; }, 2000);
+        }
+
+        // ============ 速度測定ゲーム（Pythonロジック準拠） ============
+        let speedGameState = {
+            isRunning: false,
+            questionPool: [],
+            currentIndex: 0,
+            times: [],
+            startTime: 0,
+            questionStartTime: 0
+        };
+
+        function startSpeedGame() {
+            const problemsCount = parseInt(document.getElementById('speed-problems').value);
+            const keybinds = getStorage('keybindings', {});
+            
+            if (Object.keys(keybinds).length === 0) {
+                alert('まずキーバインド設定をしてください');
+                return;
+            }
+
+            // 被りなしでランダム選択
+            speedGameState.questionPool = DEFAULT_KEY_MAP
+                .filter(([action]) => keybinds[action])
+                .sort(() => Math.random() - 0.5)
+                .slice(0, Math.min(problemsCount, 10))
+                .map(([action, _]) => [action, keybinds[action]]);
+
+            speedGameState.currentIndex = 0;
+            speedGameState.times = [];
+            speedGameState.isRunning = true;
+
+            document.getElementById('speed-setup').style.display = 'none';
+            document.getElementById('speed-game').style.display = 'block';
+            document.getElementById('speed-result').style.display = 'none';
+
+            showNextSpeedQuestion();
+        }
+
+        function showNextSpeedQuestion() {
+            if (speedGameState.currentIndex >= speedGameState.questionPool.length) {
+                finishSpeedGame();
+                return;
+            }
+
+            const [action, targetKey] = speedGameState.questionPool[speedGameState.currentIndex];
+            
+            document.getElementById('speed-progress').textContent = 
+                `第 ${speedGameState.currentIndex + 1} 問 / 全 ${speedGameState.questionPool.length} 問`;
+            document.getElementById('speed-key-display').textContent = action;
+            document.getElementById('speed-timer').textContent = '0.00s';
+            
+            speedGameState.questionStartTime = performance.now();
+            updateSpeedTimer();
+            
+            // グローバルキーリスナーで検知
+            window.currentSpeedTargetKey = targetKey.toLowerCase();
+        }
+
+        let speedTimerInterval;
+        function updateSpeedTimer() {
+            clearInterval(speedTimerInterval);
+            speedTimerInterval = setInterval(() => {
+                const elapsed = (performance.now() - speedGameState.questionStartTime) / 1000;
+                document.getElementById('speed-timer').textContent = elapsed.toFixed(2) + 's';
+            }, 10);
+        }
+
+        function finishSpeedGame() {
+            clearInterval(speedTimerInterval);
+            speedGameState.isRunning = false;
+            
+            const totalTime = speedGameState.times.reduce((a, b) => a + b, 0);
+            const avgTime = totalTime / speedGameState.times.length;
+            const best = Math.min(...speedGameState.times);
+            const worst = Math.max(...speedGameState.times);
+
+            document.getElementById('speed-game').style.display = 'none';
+            document.getElementById('speed-result').style.display = 'block';
+            document.getElementById('speed-total').textContent = totalTime.toFixed(2);
+            document.getElementById('speed-avg').textContent = avgTime.toFixed(2);
+            document.getElementById('speed-best').textContent = best.toFixed(2);
+            document.getElementById('speed-worst').textContent = worst.toFixed(2);
+        }
+
+        function saveSpeedScore() {
+            const scores = getStorage('speedScores', []);
+            const totalTime = speedGameState.times.reduce((a, b) => a + b, 0);
+            const avgTime = totalTime / speedGameState.times.length;
+            
+            scores.push({
+                date: new Date().toLocaleString('ja-JP'),
+                totalTime: parseFloat(totalTime.toFixed(2)),
+                avgTime: parseFloat(avgTime.toFixed(2)),
+                problems: speedGameState.questionPool.length
+            });
+            
+            scores.sort((a, b) => a.avgTime - b.avgTime);
+            setStorage('speedScores', scores.slice(0, 10));
+            
+            updateHighScore();
+            updateRankings();
+            alert('スコアを保存しました！');
+        }
+
+        function updateHighScore() {
+            const scores = getStorage('speedScores', []);
+            if (scores.length > 0) {
+                const highScore = scores[0].totalTime;
+                document.getElementById('highscore-display').textContent = 
+                    `🏆 ハイスコア: ${highScore.toFixed(2)}秒`;
+            }
+        }
+
+        function resetSpeedGame() {
+            document.getElementById('speed-setup').style.display = 'block';
+            document.getElementById('speed-game').style.display = 'none';
+            document.getElementById('speed-result').style.display = 'none';
+        }
+
+        function cancelSpeedGame() {
+            clearInterval(speedTimerInterval);
+            speedGameState.isRunning = false;
+            resetSpeedGame();
+        }
+
+        // ============ グローバルキーリスナー（速度測定） ============
+        window.currentSpeedTargetKey = null;
+        document.addEventListener('keydown', (e) => {
+            if (!speedGameState.isRunning || !window.currentSpeedTargetKey) return;
+            
+            let pressedKey = e.key.toLowerCase();
+            if (e.key === ' ') pressedKey = 'space';
+            if (e.key === 'Shift') pressedKey = 'shift';
+            if (e.key === 'Control') pressedKey = 'control';
+            
+            if (pressedKey === window.currentSpeedTargetKey) {
+                const time = (performance.now() - speedGameState.questionStartTime) / 1000;
+                speedGameState.times.push(time);
+                speedGameState.currentIndex++;
+                clearInterval(speedTimerInterval);
+                showNextSpeedQuestion();
+            }
+        });
+
+        // ============ CPS測定 ============
+        let cpsState = {
+            isRunning: false,
+            count: 0,
+            duration: 10,
+            timeLeft: 10,
+            targetKey: null
+        };
+
+        function startCpsTest() {
+            const targetKey = document.getElementById('cps-target-key').value;
+            if (!targetKey) {
+                alert('まずキーを登録してください（入力欄をクリック）');
+                return;
+            }
+
+            cpsState.duration = parseInt(document.getElementById('cps-duration').value);
+            cpsState.count = 0;
+            cpsState.timeLeft = cpsState.duration;
+            cpsState.isRunning = true;
+            cpsState.targetKey = targetKey.toLowerCase();
+
+            document.getElementById('cps-setup').style.display = 'none';
+            document.getElementById('cps-game').style.display = 'block';
+            document.getElementById('cps-result').style.display = 'none';
+            document.getElementById('cps-count').textContent = '0';
+            document.getElementById('cps-timer').textContent = cpsState.duration;
+
+            const timer = setInterval(() => {
+                cpsState.timeLeft--;
+                document.getElementById('cps-timer').textContent = cpsState.timeLeft;
+                
+                if (cpsState.timeLeft <= 0) {
+                    clearInterval(timer);
+                    endCpsTest();
+                }
+            }, 1000);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (!cpsState.isRunning) return;
+            
+            let pressedKey = e.key.toLowerCase();
+            if (e.key === ' ') pressedKey = 'space';
+            if (e.key === 'Shift') pressedKey = 'shift';
+            if (e.key === 'Control') pressedKey = 'control';
+            
+            if (pressedKey === cpsState.targetKey) {
+                cpsState.count++;
+                document.getElementById('cps-count').textContent = cpsState.count;
+            }
+        });
+
+        function endCpsTest() {
+            cpsState.isRunning = false;
+            const cps = (cpsState.count / cpsState.duration).toFixed(2);
+            
+            document.getElementById('cps-game').style.display = 'none';
+            document.getElementById('cps-result').style.display = 'block';
+            document.getElementById('cps-value').textContent = cps;
+            document.getElementById('cps-total').textContent = cpsState.count;
+        }
+
+        function saveCpsScore() {
+            const scores = getStorage('cpsScores', []);
+            const cps = (cpsState.count / cpsState.duration).toFixed(2);
+            
+            scores.push({
+                date: new Date().toLocaleString('ja-JP'),
+                cps: parseFloat(cps),
+                count: cpsState.count,
+                duration: cpsState.duration
+            });
+            
+            scores.sort((a, b) => b.cps - a.cps);
+            setStorage('cpsScores', scores.slice(0, 10));
+            
+            updateRankings();
+            alert('スコアを保存しました！');
+        }
+
+        function resetCpsTest() {
+            document.getElementById('cps-setup').style.display = 'block';
+            document.getElementById('cps-game').style.display = 'none';
+            document.getElementById('cps-result').style.display = 'none';
+        }
+
+        function cancelCpsTest() {
+            cpsState.isRunning = false;
+            resetCpsTest();
+        }
+
+        // CPS用キー登録
+        document.getElementById('cps-target-key').addEventListener('click', function() {
+            this.value = 'キーを押してください...';
+            this.style.background = '#4ade80';
+            this.style.color = '#0f1419';
+            
+            const tempListener = (e) => {
+                e.preventDefault();
+                let keyName = e.key.toLowerCase();
+                if (e.key === ' ') keyName = 'space';
+                if (e.key === 'Shift') keyName = 'shift';
+                if (e.key === 'Control') keyName = 'control';
+                
+                document.getElementById('cps-target-key').value = keyName;
+                document.getElementById('cps-target-key').style.background = '#1a2332';
+                document.getElementById('cps-target-key').style.color = '#e0e0e0';
+                
+                document.removeEventListener('keydown', tempListener);
+            };
+            
+            document.addEventListener('keydown', tempListener);
+        });
+
+        // ============ 感度測定 ============
+        function updateSensitivity(value) {
+            document.getElementById('sens-level').textContent = parseFloat(value).toFixed(1);
+        }
+
+        function saveSensitivity() {
+            const sens = document.getElementById('sensitivity-slider').value;
+            setStorage('sensitivity', parseFloat(sens));
+            alert(`感度 ${sens} を保存しました！`);
+        }
+
+        // ============ ランキング更新 ============
+        function updateRankings() {
+            const speedScores = getStorage('speedScores', []);
+            const cpsScores = getStorage('cpsScores', []);
+            
+            const speedRanking = document.getElementById('speed-ranking');
+            const cpsRanking = document.getElementById('cps-ranking');
+            
+            speedRanking.innerHTML = speedScores.length ? speedScores.map((score, i) => `
+                <div class="leaderboard-entry ${i === 0 ? 'top' : ''}">
+                    <div class="leaderboard-rank">#${i + 1}</div>
+                    <div class="leaderboard-info">
+                        <div>${score.date}</div>
+                        <div style="font-size: 0.9em; color: #a0a0a0;">${score.problems}問 / 平均 ${score.avgTime}秒</div>
+                    </div>
+                    <div class="leaderboard-score">${score.totalTime}s</div>
+                </div>
+            `).join('') : '<p style="color: #a0a0a0; text-align: center;">スコアがまだありません</p>';
+            
+            cpsRanking.innerHTML = cpsScores.length ? cpsScores.map((score, i) => `
+                <div class="leaderboard-entry ${i === 0 ? 'top' : ''}">
+                    <div class="leaderboard-rank">#${i + 1}</div>
+                    <div class="leaderboard-info">
+                        <div>${score.date}</div>
+                        <div style="font-size: 0.9em; color: #a0a0a0;">計${score.count}回 / ${score.duration}秒</div>
+                    </div>
+                    <div class="leaderboard-score">${score.cps} CPS</div>
+                </div>
+            `).join('') : '<p style="color: #a0a0a0; text-align: center;">スコアがまだありません</p>';
+        }
+
+        function clearAllScores() {
+            if (confirm('本当にすべてのスコアを削除してもいいですか？')) {
+                localStorage.removeItem('speedScores');
+                localStorage.removeItem('cpsScores');
+                updateRankings();
+                updateHighScore();
+                alert('すべてのスコアを削除しました。');
+            }
+        }
+
+        // ============ 匿名検索 ============
+        function searchWeb(engine = 'duckduckgo') {
+            const query = document.getElementById('search-query').value;
+            if (!query) {
+                alert('検索キーワードを入力してください');
+                return;
+            }
+            
+            const urls = {
+                duckduckgo: `https://duckduckgo.com/?q=${encodeURIComponent(query)}`,
+                startpage: `https://www.startpage.com/sp/search?q=${encodeURIComponent(query)}`,
+                searx: `https://searx.be/?q=${encodeURIComponent(query)}`,
+                ecosia: `https://www.ecosia.org/search?q=${encodeURIComponent(query)}`
+            };
+            
+            window.open(urls[engine] || urls['duckduckgo'], '_blank');
+        }
+
+        // ============ 初期化 ============
+        window.addEventListener('load', () => {
+            initKeyBindings();
+            updateRankings();
+            updateHighScore();
+        });
+    </script>
+</body>
+</html>
