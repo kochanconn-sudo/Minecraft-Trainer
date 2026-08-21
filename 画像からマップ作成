@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minecraft Map Builder</title>
+    <title>🏰 Minecraftマップビルダー</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: sans-serif; background: #1a1a1a; color: #eee; padding: 20px; }
@@ -30,39 +30,39 @@
     </style>
 </head>
 <body>
-    <h1>🏰 Minecraft Map Builder</h1>
+    <h1>🏰 Minecraftマップビルダー</h1>
     <div class="container">
         <div class="canvas-area"><canvas id="canvas"></canvas></div>
         <div class="sidebar">
             <div class="section">
-                <h3>📸 Image</h3>
+                <h3>📸 画像</h3>
                 <input type="file" id="imageInput" accept="image/*">
             </div>
             <div class="section">
-                <h3>⚙️ Grid Size (px)</h3>
+                <h3>⚙️ グリッドサイズ (px)</h3>
                 <input type="number" id="gridSize" value="10" min="1" max="50">
             </div>
             <div class="section">
-                <h3>🎨 Tool</h3>
-                <select id="toolMode"><option value="paint">✏️ Paint</option><option value="fill">🪣 Fill</option></select>
+                <h3>🎨 ツール</h3>
+                <select id="toolMode"><option value="paint">✏️ ペイント</option><option value="fill">🪣 塗りつぶし</option></select>
             </div>
             <div class="section">
-                <h3>🎭 Colors</h3>
+                <h3>🎭 色</h3>
                 <div class="color-grid" id="colorPicker"></div>
             </div>
             <div class="section">
-                <h3>🧱 Block Map</h3>
+                <h3>🧱 ブロック</h3>
                 <div class="mapping" id="blockMapping"></div>
             </div>
             <div class="section">
-                <h3>📍 Start Coords</h3>
+                <h3>📍 開始座標</h3>
                 <label>X: <input type="number" id="startX" value="0"></label>
                 <label>Y: <input type="number" id="startY" value="64"></label>
                 <label>Z: <input type="number" id="startZ" value="0"></label>
             </div>
             <div class="section">
-                <button id="exportBtn">📤 Export Commands</button>
-                <button id="exportJsonBtn">📋 Export JSON</button>
+                <button id="exportBtn">📤 コマンド出力</button>
+                <button id="exportJsonBtn">📋 JSON出力</button>
             </div>
         </div>
     </div>
@@ -179,7 +179,7 @@
         document.getElementById('toolMode').onchange = (e) => { toolMode = e.target.value; };
         
         document.getElementById('exportBtn').onclick = () => {
-            if (!gridData) { alert('Load image first'); return; }
+            if (!gridData) { alert('先に画像を読み込んでください'); return; }
             const sx = parseInt(document.getElementById('startX').value);
             const sy = parseInt(document.getElementById('startY').value);
             const sz = parseInt(document.getElementById('startZ').value);
@@ -190,11 +190,11 @@
                     cmds.push(`setblock ${sx+x} ${sy} ${sz+y} ${block}`);
                 }
             }
-            downloadFile(cmds.join('\n'), 'commands.txt', 'text/plain');
+            downloadFile(cmds.join('\n'), 'マップコマンド.txt', 'text/plain');
         };
         
         document.getElementById('exportJsonBtn').onclick = () => {
-            if (!gridData) { alert('Load image first'); return; }
+            if (!gridData) { alert('先に画像を読み込んでください'); return; }
             const sx = parseInt(document.getElementById('startX').value);
             const sy = parseInt(document.getElementById('startY').value);
             const sz = parseInt(document.getElementById('startZ').value);
@@ -204,7 +204,7 @@
                     blocks.push({x: sx+x, y: sy, z: sz+y, block: blockMap[gridData[y][x]] || 'stone', color: gridData[y][x]});
                 }
             }
-            downloadFile(JSON.stringify({metadata: {width: gridData[0].length, height: gridData.length, sx, sy, sz, gridSize}, blocks}, null, 2), 'map.json', 'application/json');
+            downloadFile(JSON.stringify({metadata: {width: gridData[0].length, height: gridData.length, sx, sy, sz, gridSize}, blocks}, null, 2), 'マップデータ.json', 'application/json');
         };
         
         function downloadFile(content, filename, mime) {
