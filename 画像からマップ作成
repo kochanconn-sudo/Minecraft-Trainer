@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Map Builder</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: sans-serif; background: #1a1a1a; color: #eee; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: 1fr 280px; gap: 20px; }
+        h1 { text-align: center; margin-bottom: 20px; color: #58a6ff; grid-column: 1/-1; }
+        .canvas-area { background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 20px; overflow: auto; max-height: 700px; }
+        canvas { border: 2px solid #555; cursor: crosshair; image-rendering: pixelated; display: block; margin: 0 auto; }
+        .sidebar { background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 15px; max-height: 700px; overflow-y: auto; }
+        .section { margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #444; }
+        .section:last-child { border-bottom: none; }
+        .section h3 { font-size: 11px; text-transform: uppercase; margin-bottom: 10px; color: #999; }
+        input, select { width: 100%; padding: 6px; margin-bottom: 6px; background: #1a1a1a; border: 1px solid #444; color: #eee; border-radius: 3px; font-size: 12px; }
+        input:focus, select:focus { outline: none; border-color: #58a6ff; }
+        button { width: 100%; padding: 8px; background: #238636; border: 1px solid #2ea043; color: #fff; border-radius: 3px; cursor: pointer; font-weight: 600; margin-bottom: 6px; font-size: 12px; }
+        button:hover { background: #2ea043; }
+        .color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 10px; }
+        .color-btn { aspect-ratio: 1; border: 2px solid transparent; cursor: pointer; border-radius: 3px; transition: all 0.2s; }
+        .color-btn.selected { border-color: #58a6ff; box-shadow: 0 0 8px rgba(88, 166, 255, 0.6); }
+        .mapping { font-size: 11px; max-height: 120px; overflow-y: auto; }
+        .map-item { display: grid; grid-template-columns: 24px 1fr; gap: 6px; margin-bottom: 6px; align-items: center; }
+        .map-item input { margin: 0; padding: 3px; }
+        .color-sq { width: 24px; height: 24px; border: 1px solid #555; border-radius: 2px; }
+        .info { font-size: 10px; color: #888; margin-top: 6px; }
+    </style>
+</head>
+<body>
+    <h1>🏰 Minecraft Map Builder</h1>
+    <div class="container">
+        <div class="canvas-area"><canvas id="canvas"></canvas></div>
+        <div class="sidebar">
+            <div class="section">
+                <h3>📸 Image</h3>
+                <input type="file" id="imageInput" accept="image/*">
+            </div>
+            <div class="section">
+                <h3>⚙️ Grid Size (px)</h3>
+                <input type="number" id="gridSize" value="10" min="1" max="50">
+            </div>
+            <div class="section">
+                <h3>🎨 Tool</h3>
+                <select id="toolMode"><option value="paint">✏️ Paint</option><option value="fill">🪣 Fill</option></select>
+            </div>
+            <div class="section">
+                <h3>🎭 Colors</h3>
+                <div class="color-grid" id="colorPicker"></div>
+            </div>
+            <div class="section">
+                <h3>🧱 Block Map</h3>
+                <div class="mapping" id="blockMapping"></div>
+            </div>
+            <div class="section">
+                <h3>📍 Start Coords</h3>
+                <label>X: <input type="number" id="startX" value="0"></label>
+                <label>Y: <input type="number" id="startY" value="64"></label>
+                <label>Z: <input type="number" id="startZ" value="0"></label>
+            </div>
+            <div class="section">
+                <button id="exportBtn">📤 Export Commands</button>
+                <button id="exportJsonBtn">📋 Export JSON</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas'), ctx = canvas.getContext('2d');
+        let gridData, gridSize = 10, selectedColor = '#FF0000', toolMode = 'paint';
+        const defaultBlocks = {
+            '#FF0000': 'red_bricks', '#FFCC00': 'oak_wood', '#4A7C3F': 'grass_block',
+            '#2D5C1F': 'spruce_leaves', '#87CEEB': 'water', '#808080': 'stone',
+            '#D3D3D3': 'light_gray_concrete', '#8B6914': 'dark_oak_log'
+        };
+        let blockMap = { ...defaultBlocks };
+
+        function rgbToHex(r, g, b) {
+            return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+        }
+
+        function renderColorPicker() {
+            const picker = document.getElementById('colorPicker');
+            picker.innerHTML = '';
+            Object.keys(defaultBlocks).forEach(color => {
+                const btn = document.createElement('button');
+                btn.className = 'color-btn';
+                btn.style.backgroundColor = color;
+                if (color === selectedColor) btn.classList.add('selected');
+                btn.onclick = () => { selectedColor = color; renderColorPicker(); };
+                picker.appendChild(btn);
+            });
+        }
+
+        function renderBlockMapping() {
+            const mapping = document.getElementById('blockMapping');
+            mapping.innerHTML = '';
+            Object.entries(blockMap).forEach(([color, block]) => {
+                const item = document.createElement('div');
+                item.className = 'map-item';
+                item.innerHTML = `
+                    <div class="color-sq" style="background: ${color}"></div>
+                    <input type="text" value="${block}" onchange="window.blockMap['${color}'] = this.value;">
+                `;
+                mapping.appendChild(item);
+            });
+        }
+
+        function loadImage(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    gridSize = parseInt(document.getElementById('gridSize').value);
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = img.width; tempCanvas.height = img.height;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    tempCtx.drawImage(img, 0, 0);
+                    const imgData = tempCtx.getImageData(0, 0, img.width, img.height).data;
+                    gridData = [];
+                    for (let i = 0; i < img.height; i++) {
+                        gridData[i] = [];
+                        for (let j = 0; j < img.width; j++) {
+                            const idx = (i * img.width + j) * 4;
+                            gridData[i][j] = rgbToHex(imgData[idx], imgData[idx+1], imgData[idx+2]);
+                        }
+                    }
+                    renderCanvas();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function renderCanvas() {
+            if (!gridData) return;
+            gridSize = parseInt(document.getElementById('gridSize').value);
+            canvas.width = gridData[0].length * gridSize;
+            canvas.height = gridData.length * gridSize;
+            for (let y = 0; y < gridData.length; y++) {
+                for (let x = 0; x < gridData[y].length; x++) {
+                    ctx.fillStyle = gridData[y][x];
+                    ctx.fillRect(x * gridSize, y * gridSize, gridSize, gridSize);
+                    ctx.strokeStyle = '#ffffff15'; ctx.lineWidth = 0.5;
+                    ctx.strokeRect(x * gridSize, y * gridSize, gridSize, gridSize);
+                }
+            }
+        }
+
+        function floodFill(x, y, oldColor, newColor) {
+            if (oldColor === newColor) return;
+            const queue = [[x, y]], visited = new Set();
+            while (queue.length) {
+                const [cx, cy] = queue.shift(), key = `${cx},${cy}`;
+                if (visited.has(key)) continue; visited.add(key);
+                if (cy < 0 || cy >= gridData.length || cx < 0 || cx >= gridData[0].length) continue;
+                if (gridData[cy][cx] !== oldColor) continue;
+                gridData[cy][cx] = newColor;
+                queue.push([cx+1, cy], [cx-1, cy], [cx, cy+1], [cx, cy-1]);
+            }
+        }
+
+        canvas.onclick = (e) => {
+            if (!gridData) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) / gridSize);
+            const y = Math.floor((e.clientY - rect.top) / gridSize);
+            if (y >= 0 && y < gridData.length && x >= 0 && x < gridData[0].length) {
+                if (toolMode === 'paint') gridData[y][x] = selectedColor;
+                else floodFill(x, y, gridData[y][x], selectedColor);
+                renderCanvas();
+            }
+        };
+
+        document.getElementById('imageInput').onchange = (e) => { if (e.target.files[0]) loadImage(e.target.files[0]); };
+        document.getElementById('gridSize').onchange = renderCanvas;
+        document.getElementById('toolMode').onchange = (e) => { toolMode = e.target.value; };
+        
+        document.getElementById('exportBtn').onclick = () => {
+            if (!gridData) { alert('Load image first'); return; }
+            const sx = parseInt(document.getElementById('startX').value);
+            const sy = parseInt(document.getElementById('startY').value);
+            const sz = parseInt(document.getElementById('startZ').value);
+            let cmds = [];
+            for (let y = 0; y < gridData.length; y++) {
+                for (let x = 0; x < gridData[y].length; x++) {
+                    const block = blockMap[gridData[y][x]] || 'stone';
+                    cmds.push(`setblock ${sx+x} ${sy} ${sz+y} ${block}`);
+                }
+            }
+            downloadFile(cmds.join('\n'), 'commands.txt', 'text/plain');
+        };
+        
+        document.getElementById('exportJsonBtn').onclick = () => {
+            if (!gridData) { alert('Load image first'); return; }
+            const sx = parseInt(document.getElementById('startX').value);
+            const sy = parseInt(document.getElementById('startY').value);
+            const sz = parseInt(document.getElementById('startZ').value);
+            const blocks = [];
+            for (let y = 0; y < gridData.length; y++) {
+                for (let x = 0; x < gridData[y].length; x++) {
+                    blocks.push({x: sx+x, y: sy, z: sz+y, block: blockMap[gridData[y][x]] || 'stone', color: gridData[y][x]});
+                }
+            }
+            downloadFile(JSON.stringify({metadata: {width: gridData[0].length, height: gridData.length, sx, sy, sz, gridSize}, blocks}, null, 2), 'map.json', 'application/json');
+        };
+        
+        function downloadFile(content, filename, mime) {
+            const blob = new Blob([content], {type: mime}), url = URL.createObjectURL(blob), a = document.createElement('a');
+            a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
+        }
+        
+        window.blockMap = blockMap;
+        renderColorPicker(); 
+        renderBlockMapping();
+    </script>
+</body>
+</html>
